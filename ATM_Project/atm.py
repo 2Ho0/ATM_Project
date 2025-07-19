@@ -57,7 +57,7 @@ class Bank:
     
     def get_accounts(self, card_id):
         if card_id not in self.cards:
-            raise NoCardInsertedError("Insert card first")
+            raise InvalidCardError("Card not found")
         return self.cards[card_id]["accounts"]
 
 class ATMController:
@@ -65,20 +65,24 @@ class ATMController:
         self.bank = bank
         self.current_card = None
         self.current_account = None
+        self.pin_verified = False
 
     def insert_card(self, card_id):
         if card_id not in self.bank.cards:
             raise InvalidCardError("Invalid card")
         self.current_card = card_id
+        self.pin_verified = False
+        self.current_account = None
     
     def enter_pin(self, pin):
         if self.current_card is None:
             raise NoCardInsertedError("Insert card first")
         if not self.bank.verify_pin(self.current_card, pin):
             raise IncorrectPINError("Incorrect PIN")
+        self.pin_verified = True
 
     def select_account(self, account_id):
-        if self.current_card is None:
+        if not self.pin_verified:
             raise NoCardInsertedError("Insert card and verify PIN first")
         accounts = self.bank.get_accounts(self.current_card)
         for account in accounts:
@@ -101,3 +105,8 @@ class ATMController:
         if self.current_account is None:
             raise AccountNotSelectedError("Select account first")
         self.current_account.withdraw(amount)
+
+    def eject_card(self):
+        self.current_card = None
+        self.current_account = None
+        self.pin_verified = False
